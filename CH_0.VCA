@@ -1,0 +1,2185 @@
+SCCTEXT Version 4.0.0.2
+PLATFORM C(8,0),UNIQUEID C(10,0),TIMESTAMP N(10,0),CLASS M(4,0),CLASSLOC M(4,0),BASECLASS M(4,0),OBJNAME M(4,0),PARENT M(4,0),PROPERTIES M(4,0),PROTECTED M(4,0),METHODS M(4,0),OBJCODE M(4,0),OLE M(4,0),OLE2 M(4,0),RESERVED1 M(4,0),RESERVED2 M(4,0),RESERVED3 M(4,0),RESERVED4 M(4,0),RESERVED5 M(4,0),RESERVED6 M(4,0),RESERVED7 M(4,0),RESERVED8 M(4,0),USER M(4,0)
+1252
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] Class     
+[START RESERVED1]
+VERSION =   3.00[END RESERVED1]
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1VH0ZK2AL
+[CLASS] _frm
+[CLASSLOC] chbase.vcx
+[BASECLASS] form
+[OBJNAME] frm
+[START PROPERTIES]
+DataSession = 2
+ShowWindow = 2
+DoCreate = .T.
+Caption = "Base CH Form"
+Icon = ..\other\note14.ico
+ColorSource = 5
+ForeColor = 0,0,255
+p_calling_object = 
+p_menu = 
+p_release_oapp = .F.
+p_security = 
+p_startup_form = .F.
+p_mode = 
+p_whdl = 0
+p_skip_error_handler = .F.
+p_window_handle = 0
+Name = "frm"
+[END PROPERTIES]
+[START METHODS]
+PROCEDURE Destroy
+Lparameters make_sure_to_do_default
+DoDefault()
+
+*IF this.p_startup_form
+
+TRY
+	lnFormsList = ALEN(oapp.p_form_list,1)
+	DIMENSION oapp.p_form_list(lnFormsList+1)
+	oapp.p_form_list(lnFormsList+1) = '('+this.p_whdl+') '+'.........closed...'+LOWER(ALLTRIM(this.name))+TTOC(DATETIME())
+CATCH
+
+
+ENDTRY
+IF this.p_startup_form
+*On Error
+ENDIF
+
+*** if this is the startup form, then we need to bail out
+If This.p_startup_form
+    Release Menu (This.Name) Extended
+
+    Clear Events
+
+    Release All
+    Clear
+    Clear Memory
+Endif
+** condition when form is run by it's self
+If This.p_release_oapp
+    Release oApp
+    Clear Events
+    Release All
+    Clear
+    Clear Memory
+Endif
+
+ENDPROC
+PROCEDURE Init
+*!* Program:
+*!* Author: Ron Haugen
+*!* Date: 08/21/06 04:12:21 PM
+*!* Copyright: Companions and Homemakers
+*!* Description:
+*!* Revision Information:
+
+Lparameters oCallingObject
+*** oCallingObject is reference to the command button, grid click or any object calling the form
+***********  assumption is made that each form is called by an object (cmd button etc.) from a form
+If Type('oCallingObject') = 'O'
+	This.p_Calling_Object = oCallingObject
+	This.Top = oCallingObject.Top + 10
+	This.Left = oCallingObject.Left + 10
+Endif
+
+
+Declare ReleaseCapture In "user32"
+Declare Long SendMessage In "user32" Long HWnd, Long wMsg, Long wParam, Long Lparam
+
+*!*			IF VERSION(5) < 700
+*!*				*-- Need to get the forms window handle
+*!*			ELSE
+*!*				THIS.nHwnd = THIS.HWnd
+*!*			ENDIF
+
+This.p_window_handle = This.HWnd
+
+*** check to determine if we have security clearance
+*!*	If Type('oApp') # 'U'
+*!*	    oApp.m_security_check(This)
+*!*	    If oApp.p_exitform
+*!*	        Messagebox('Security does not allow you to access this form',64+4096,This.Caption)
+*!*	        This.p_exitform = oApp.p_exitform
+*!*	    Endif
+*!*	Endif
+
+
+
+
+
+
+If !Empty(This.p_startup_form) And This.ShowWindow = 2
+	This.HalfHeightCaption = .F.
+	If !Empty(This.p_menu)
+		*** does the menu mpr exist?
+		Try
+			Do Evaluate('this.p_menu') With This, .T.
+		Catch
+		Endtry
+
+	Endif
+
+Endif
+
+
+Try
+	This.p_whdl =  Alltrim(Str(This.HWnd))
+	lnFormsList = Alen(oapp.p_form_list,1)
+	Dimension oapp.p_form_list(lnFormsList+1)
+	oapp.p_form_list(lnFormsList+1) =  '('+This.p_whdl+') '+Upper(Alltrim(This.Name))+'..opened...'+Ttoc(Datetime())
+Catch
+
+
+Endtry
+
+
+
+**** add this form to the oapp.p_running_form collection
+
+IF alen(oapp.p_running_forms) = 1 &&& very first form opened
+	DIMENSION oapp.p_running_forms(1,2)
+	oapp.p_running_forms(1,1) = this
+	oapp.p_running_forms(1,2) = this.name
+	
+ELSE
+
+lnDim = ALEN(oapp.p_running_forms,1)
+
+DIMENSION oapp.p_running_forms(lnDim+1,2)
+	oapp.p_running_forms(lnDim+1,1) = this
+	oapp.p_running_forms(lnDim+1,2) = this.name
+ENDIF
+
+
+ENDPROC
+PROCEDURE Load
+Lparameters make_sure_to_do_default
+
+SET MULTILOCKS ON
+SET REPROCESS TO automatic
+SET SAFETY OFF
+SET TABLEPROMPT off
+SET REFRESH TO 1
+SET TABLEVALIDATE TO 7
+
+
+Set Century On
+	lnyear = Year(Date())+3-2000
+	Set Century To 19 ROLLOVER lnyear
+
+Set Deleted On
+Set Exact On
+
+If Type('oApp')  # 'O'
+
+	Public oApp
+	If .Not.('OAPP' $ Upper(Set('classlib')))
+		Set Classlib To  'Objects'  Additive
+	Endif
+	If Type('0App')  # 'O'
+		*** make sure we close all open databases before continuing
+		If !Empty(Adatabases(myOpenDBC))
+			For ix = 1 To Alen(myOpenDBC,1)
+				Set Database To myOpenDBC(ix,1)
+				Close Databases &&all
+			Endfor
+		Endif
+
+		oApp = Createobject('oApp','', 'TESTDATA','')
+		If Type('oApp') = 'U'
+			Set Step On
+		Endif
+
+
+	Endif
+
+	This.Caption = '(Form was Run Alone).. '+This.Caption
+
+	This.p_release_oapp = .T.
+
+Endif
+
+oApp.P_error_origination = This.Name
+
+*!*	IF _vfp.StartMode != 0 ;
+*!*			AND this.p_skip_error_handler = .f. ;
+*!*			AND FILE('c:\program files\ch_exe\vfpexmapi.fll')
+
+IF _vfp.StartMode != 0
+	
+*	On Error  oApp.m_my_errorhandler(ERROR(),MESSAGE(),MESSAGE(1),PROGRAM(),LINENO(1))
+	
+ELSE
+*	On Error  oApp.m_my_errorhandler(ERROR(),MESSAGE(),MESSAGE(1),PROGRAM(),LINENO(1))
+	*On Error  oApp.m_error_message
+ENDIF
+
+
+*** do we have a dataenvironment object (ie calendar form does not)
+If Type('this.dataenvironment') # 'U'
+
+	** oApp.p_data_path is where our data environment needs to be set
+
+	Local lnCnt, loObj, lcDBC
+
+	Local Array laList(1)
+
+	** get object member of DE
+	=Amembers(laList, This.DataEnvironment,2)
+
+	If !Empty(laList(1))
+		** we have tables in our data environment
+
+		If Alen(laList,1) > 0
+			For ix = 1 To Alen(laList,1)
+
+				loObj	= Eval("Thisform.DataEnvironment."+laList(ix))
+
+
+				Do Case
+						*** if Lower(loObj.BaseClass) = 'cursoradapter'
+					Case Lower(loObj.BaseClass) == 'cursoradapter'
+						*** we have cursor adapter without a database  (tag has reference to location)
+						*** assumption is going to be made that cursor adapter is pointing to correct
+						*** database
+
+					Case Lower(loObj.BaseClass) == 'cursor' And !Empty(loObj.Database) And '\' # loObj.Database
+						*** we have a table
+						lcDBC = Substr(loObj.Database, Rat('\', loObj.Database))
+						loObj.Database = oApp.p_data_location +'\'+(Substr(loObj.Database,Rat('\',Justpath(loObj.Database))+1))
+						If !Dbused(loObj.Database)
+							Open Database (loObj.Database)
+						Endif
+					Case Lower(loObj.BaseClass) == 'cursor' And Empty(loObj.Database)  && we have a free table
+						lcDBC = Strtran(loObj.CursorSource,Justdrive(loObj.CursorSource),'')
+						loObj.CursorSource = Justdrive(oApp.p_data_location) + lcDBC
+
+				Endcase
+			Endfor
+		Endif
+
+		This.DataEnvironment.OpenTables()
+
+	Endif
+Endif
+
+
+
+ENDPROC
+PROCEDURE MouseDown
+Lparameters nButton, nShift, nXCoord, nYCoord
+
+
+If nButton = 1
+try
+	ReleaseCapture()
+	SendMessage(This.p_window_handle, 0x112, 0xF012, 0x0)
+CATCH
+endtry
+Endif
+
+ENDPROC
+PROCEDURE m_revert
+Lparameters lsuppressmessagebox
+
+If !lsuppressmessagebox And Messagebox('Are you sure you want to cancel your changes?', 36+4096, 'Cancel Dialogue') = 7
+    Return .F.
+Else
+    Wait Window 'Reverting changes and Refreshing Form.' Nowait
+Endif
+
+lcAlias = Alias()
+
+If Aused(lcCursorArray) > 0		&& Get all cursors  in use
+
+    ** we have to check for buffering to do a tableupdate
+
+    For ix = 1 To Alen(lcCursorArray,1)
+        lcTable = lcCursorArray(ix,1)
+
+        Select(lcTable)
+
+        If Reccount(Select (lcTable)) > 0 And CursorGetProp('Buffering',lcTable) # 1  &&& buffering is set
+
+            lcRecordon = Recno(Select (lcTable))
+            If Getnextmodified(0,lcTable) # 0
+                lnRecReverted = Tablerevert(.T., lcTable)
+                If Empty(lnRecReverted)
+                    *** further error detection should be done
+                    Messagebox('Error occurred trying to Revert Changes .'+Chr(13)+;
+                        'Please advise IS Department',64+4096,'Table '+lcTable,3000)
+                Endif
+
+
+                If lcRecordon < 0
+                    Go Bottom
+                Else
+                    Go lcRecordon
+                Endif
+
+
+            Endif
+        Endif
+
+    Endfor
+
+    This.Refresh()
+
+    Wait Clear
+    If !lsuppressmessagebox
+        Wait Window 'Changes have been canceled.' Timeout 1
+    Endif
+
+Endif
+
+If !Empty(lcAlias)
+    Select (lcAlias)
+Endif
+
+ENDPROC
+PROCEDURE m_save
+Lparameters make_sure_to_do_Default
+
+
+* run thru all buffered tables and do a table update
+* move record pointer back to record presently on, however,
+* no guarentee that relationships will be preserved.
+
+*** oApp.p_read_only flag so do not save
+
+If Type('oApp.p_read_only') # 'U'
+    If oApp.p_read_only     &&AND !THISFORM.p_readonly_override
+        Wait Window 'Changes will not be saved!!'+Chr(13)+;
+            'You were in a Read Only Mode '+Chr(13)+;
+            NOWAIT Timeout 5
+        Return .F.
+    Endif
+Endif
+Wait Window 'Saving Changes' Nowait
+
+lcAlias = Alias()
+
+If Aused(lcCursorArray) > 0		&& Get all cursors  in use
+
+    ** we have to check for buffering to do a tableupdate
+
+    For ix = 1 To Alen(lcCursorArray,1)
+        lcTable = lcCursorArray(ix,1)
+
+        Select(lcTable)
+        If Reccount(Select (lcTable)) > 0 And CursorGetProp('Buffering',lcTable) # 1  &&& buffering is set
+            lcRecordon = Recno(Select (lcTable))
+            lcReccount = RECCOUNT(SELECT(lcTable))
+            If Getnextmodified(0,lcTable) # 0
+
+            BEGIN TRANSACTION
+            this.bufF.Visible = .t.
+
+                lSuccessful = Tableupdate(.T., .T., lcTable)
+                FLUSH IN &lcTable FORCE
+			this.bufF.Visible = .f.
+			 END TRANSACTION
+			
+                If !lSuccessful
+                    *** further error detection should be done
+                    Messagebox('Error occurred trying to Save Changes .'+Chr(13)+;
+                        'Please advise IS Department',64+4096,'Table '+lcTable,3000)
+                ELSE
+
+                Endif
+
+
+                If lcRecordon < 0
+                    Go Bottom
+                Else
+                    Go MIN(lcRecordon,lcReccount)
+                Endif
+            Endif
+        Endif
+    Endfor
+
+    Wait Clear
+
+Endif
+
+If !Empty(lcAlias)
+    Select (lcAlias)
+Endif
+
+
+
+ENDPROC
+PROCEDURE p_mode_assign
+LPARAMETERS vNewVal
+*To do: Modify this routine for the Assign method
+THIS.p_mode = m.vNewVal
+
+ENDPROC
+[END METHODS]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+2[END RESERVED2]
+[START RESERVED3]
+p_calling_object Object reference that called this form
+p_menu Menu for this form
+p_release_oapp used to release oApp when from is destroyed
+p_security
+p_startup_form When .T., it is the startup form
+p_mode used to flag if the form is in the Edit or New mode
+p_whdl
+p_skip_error_handler
+p_window_handle
+*m_revert 
+*m_save 
+*m_security Method to call for security settings
+*p_mode_assign 
+[END RESERVED3]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _2HE0M25LK
+[CLASS] lbl
+[CLASSLOC] ch_0.vcx
+[BASECLASS] label
+[OBJNAME] BUFF
+[PARENT] frm
+[START PROPERTIES]
+FontBold = .T.
+Caption = "B"
+Left = 0
+Top = 0
+ForeColor = 255,0,0
+Name = "BUFF"
+[END PROPERTIES]
+[START METHODS]
+PROCEDURE Init
+this.ZOrder(0)
+this.Visible = .f.
+ENDPROC
+[END METHODS]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] frm
+[START PROPERTIES]
+Arial, 0, 9, 5, 15, 12, 32, 3, 0
+[END PROPERTIES]
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1VH0ZZLE7
+[CLASS] _chk
+[CLASSLOC] chbase.vcx
+[BASECLASS] checkbox
+[OBJNAME] chk
+[START PROPERTIES]
+AutoSize = .T.
+Alignment = 0
+BackStyle = 0
+ForeColor = 0,0,255
+DisabledForeColor = 128,0,128
+p_talk_to_form_p_mode = 0
+p_original_disabledforecolor = 
+p_reverse_talk_to_form_p_mode = .F.
+Name = "chk"
+[END PROPERTIES]
+[START METHODS]
+PROCEDURE GotFocus
+*this.BackColor = this.BackColor - 55
+ENDPROC
+PROCEDURE Init
+this.p_original_disabledforecolor = this.Disabledforecolor
+BINDEVENT(thisform,'p_mode',this,'m_mode_change',1)
+
+
+
+ENDPROC
+PROCEDURE LostFocus
+*this.BackColor = this.BackColor + 55
+ENDPROC
+PROCEDURE Refresh
+DODEFAULT()
+DO case
+	CASE THIS.Enabled = .T.
+		IF !EMPTY(this.Value) AND !EMPTY(this.p_original_disabledforecolor)
+			this.DisabledforeColor = this.p_original_disabledforecolor
+		ELSE
+			this.DisabledforeColor = RGB(0,0,1)
+		ENDIF
+		
+	CASE THIS.Enabled = .f.
+	IF !EMPTY(this.Value) AND !EMPTY(this.p_original_disabledforecolor)
+			this.DisabledforeColor = this.p_original_disabledforecolor
+		ELSE
+			this.DisabledforeColor = RGB(0,0,1)
+		ENDIF
+ENDCASE
+	
+ENDPROC
+PROCEDURE enabled_assign
+LPARAMETERS vNewVal
+*To do: Modify this routine for the Assign method
+THIS.Enabled = m.vNewVal
+
+ENDPROC
+PROCEDURE m_mode_change
+Local lFlag
+*** will control enable for mode changes on the form.
+*** p_talk_to_form_p_mode must be set to .t. to activate
+
+If !Empty(This.p_talk_to_form_p_mode)
+	lFlag = .F.
+	Do Case
+		Case This.p_talk_to_form_p_mode = 1 And ;
+				(Thisform.p_mode = 'EDIT' Or Thisform.p_mode = 'NEW')
+			lFlag = .T.
+
+		Case This.p_talk_to_form_p_mode = 2 And Thisform.p_mode = 'EDIT'
+			lFlag = .T.
+
+		Case This.p_talk_to_form_p_mode = 3 And Thisform.p_mode = 'NEW'
+			lFlag = .T.
+OTHERWISE
+	
+	Endcase
+
+	If This.readonly And !Empty(This.Value)
+		This.DisabledForeColor = Rgb(0,0,1)
+		*This.Refresh
+
+	Else
+		This.DisabledForeColor = this.p_original_disabledforecolor
+		*This.Refresh
+	Endif
+	
+
+If This.p_reverse_talk_to_form_p_mode
+	*This.readonly = lFlag
+	This.Enabled = !lflag
+Else
+	*This.readonly = !lFlag
+	this.Enabled = lflag
+Endif
+
+Endif
+
+ENDPROC
+[END METHODS]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED3]
+p_talk_to_form_p_mode 0 does not , 1 both edit and new, 2 edit only, 3 new only
+p_original_disabledforecolor
+p_reverse_talk_to_form_p_mode
+*m_mode_change 
+*enabled_assign 
+[END RESERVED3]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] chk
+[START PROPERTIES]
+Arial, 0, 9, 5, 15, 12, 32, 3, 0
+[END PROPERTIES]
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1VH1016TH
+[CLASS] _cbo
+[CLASSLOC] chbase.vcx
+[BASECLASS] combobox
+[OBJNAME] cbo
+[START PROPERTIES]
+ForeColor = 0,0,255
+DisabledForeColor = 128,0,128
+p_talk_to_form_p_mode = 0
+Name = "cbo"
+[END PROPERTIES]
+[START METHODS]
+PROCEDURE GotFocus
+this.BackColor = this.BackColor - 55
+ENDPROC
+PROCEDURE Init
+BINDEVENT(thisform,'p_mode',this,'m_mode_change',1)
+
+ENDPROC
+PROCEDURE LostFocus
+this.BackColor = this.BackColor + 55
+ENDPROC
+PROCEDURE m_mode_change
+Local lFlag
+*** will control enable for mode changes on the form.
+*** p_talk_to_form_p_mode must be set to .t. to activate
+
+If !Empty(This.p_talk_to_form_p_mode)
+	lFlag = .F.
+	Do Case
+		Case This.p_talk_to_form_p_mode = 1 And ;
+							(Thisform.p_mode = 'EDIT' Or Thisform.p_mode = 'NEW')
+			lFlag = .T.
+			
+		Case This.p_talk_to_form_p_mode = 2 And Thisform.p_mode = 'EDIT'
+			lFlag = .T.
+			
+		Case This.p_talk_to_form_p_mode = 3 And Thisform.p_mode = 'NEW'
+			lFlag = .T.
+
+	Endcase
+
+	This.Enabled = lFlag
+	this.Refresh
+Endif
+
+ENDPROC
+[END METHODS]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED3]
+p_talk_to_form_p_mode 0 does not , 1 both edit and new, 2 edit only, 3 new only
+*m_mode_change 
+[END RESERVED3]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] cbo
+[START PROPERTIES]
+Arial, 0, 9, 5, 15, 12, 32, 3, 0
+[END PROPERTIES]
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1VH101K3S
+[CLASS] _cmd
+[CLASSLOC] chbase.vcx
+[BASECLASS] commandbutton
+[OBJNAME] cmd
+[START PROPERTIES]
+ForeColor = 0,0,255
+p_talk_to_form_p_mode = 0
+p_reverse_talk_to_form_p_mode = .F.
+Name = "cmd"
+[END PROPERTIES]
+[START METHODS]
+PROCEDURE GotFocus
+this.BackColor = this.BackColor - 55
+ENDPROC
+PROCEDURE Init
+BINDEVENT(thisform,'p_mode',this,'m_mode_change',1)
+
+ENDPROC
+PROCEDURE LostFocus
+this.BackColor = this.BackColor + 55
+ENDPROC
+PROCEDURE m_mode_change
+Local lFlag
+*** will control enable for mode changes on the form.
+*** p_talk_to_form_p_mode must be set to .t. to activate
+
+If !Empty(This.p_talk_to_form_p_mode)
+	lFlag = .F.
+	Do Case
+		Case This.p_talk_to_form_p_mode = 1 And ;
+							(Thisform.p_mode = 'EDIT' Or Thisform.p_mode = 'NEW')
+			lFlag = .T.
+			
+		Case This.p_talk_to_form_p_mode = 2 And Thisform.p_mode = 'EDIT'
+			lFlag = .T.
+			
+		Case This.p_talk_to_form_p_mode = 3 And Thisform.p_mode = 'NEW'
+			lFlag = .T.
+
+	ENDCASE
+	
+	If This.p_reverse_talk_to_form_p_mode
+		This.Enabled = !lflag
+	Else
+		This.Enabled = lflag
+	Endif
+
+Endif
+
+ENDPROC
+[END METHODS]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED3]
+p_talk_to_form_p_mode 0 does not , 1 both edit and new, 2 edit only, 3 new only
+p_reverse_talk_to_form_p_mode
+*m_mode_change 
+[END RESERVED3]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] cmd
+[START PROPERTIES]
+Arial, 0, 9, 5, 15, 12, 32, 3, 0
+[END PROPERTIES]
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1VH102AUG
+[CLASS] _cmg
+[CLASSLOC] chbase.vcx
+[BASECLASS] commandgroup
+[OBJNAME] cmg
+[START PROPERTIES]
+p_talk_to_form_p_mode = 0
+Name = "cmg"
+Command1.Top = 5
+Command1.Left = 5
+Command1.ForeColor = 0,0,255
+Command1.Name = "Command1"
+Command2.Top = 34
+Command2.Left = 5
+Command2.ForeColor = 0,0,255
+Command2.Name = "Command2"
+[END PROPERTIES]
+[START METHODS]
+PROCEDURE m_mode_change
+Local lFlag
+*** will control enable for mode changes on the form.
+*** p_talk_to_form_p_mode must be set to .t. to activate
+
+If !Empty(This.p_talk_to_form_p_mode)
+	lFlag = .F.
+	Do Case
+		Case This.p_talk_to_form_p_mode = 1 And ;
+							(Thisform.p_mode = 'EDIT' Or Thisform.p_mode = 'NEW')
+			lFlag = .T.
+			
+		Case This.p_talk_to_form_p_mode = 2 And Thisform.p_mode = 'EDIT'
+			lFlag = .T.
+			
+		Case This.p_talk_to_form_p_mode = 3 And Thisform.p_mode = 'NEW'
+			lFlag = .T.
+
+	Endcase
+
+	This.Enabled = lFlag
+
+Endif
+
+ENDPROC
+[END METHODS]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED3]
+p_talk_to_form_p_mode 0 does not , 1 both edit and new, 2 edit only, 3 new only
+*m_mode_change 
+[END RESERVED3]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] cmg
+[START PROPERTIES]
+Arial, 0, 9, 5, 15, 12, 32, 3, 0
+[END PROPERTIES]
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1VH102KXQ
+[CLASS] _cnt
+[CLASSLOC] chbase.vcx
+[BASECLASS] container
+[OBJNAME] cnt
+[START PROPERTIES]
+ForeColor = 0,0,255
+p_talk_to_form_p_mode = 0
+p_reverse_talk_to_form_p_mode = .F.
+Name = "cnt"
+[END PROPERTIES]
+[START METHODS]
+PROCEDURE Init
+BINDEVENT(thisform,'p_mode',this,'m_mode_change',1)
+
+ENDPROC
+PROCEDURE m_mode_change
+Local lFlag
+*** will control enable for mode changes on the form.
+*** p_talk_to_form_p_mode must be set to .t. to activate
+
+If !Empty(This.p_talk_to_form_p_mode)
+
+	lFlag = .F.
+	Do Case
+		Case This.p_talk_to_form_p_mode = 1 And ;
+				(Thisform.p_mode = 'EDIT' Or Thisform.p_mode = 'NEW')
+			lFlag = .T.
+
+		Case This.p_talk_to_form_p_mode = 2 And Thisform.p_mode = 'EDIT'
+			lFlag = .T.
+
+		Case This.p_talk_to_form_p_mode = 3 And Thisform.p_mode = 'NEW'
+			lFlag = .T.
+
+	Endcase
+
+	If This.p_reverse_talk_to_form_p_mode
+		This.Enabled = !lFlag
+	Else
+		This.Enabled = lFlag
+	Endif
+	This.Refresh
+
+Endif
+
+ENDPROC
+[END METHODS]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED3]
+p_talk_to_form_p_mode 0 does not , 1 both edit and new, 2 edit only, 3 new only
+p_reverse_talk_to_form_p_mode
+*m_mode_change 
+*m_refresh 
+[END RESERVED3]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] cnt
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1VH102YIW
+[CLASS] _cus
+[CLASSLOC] chbase.vcx
+[BASECLASS] custom
+[OBJNAME] cus
+[START PROPERTIES]
+Name = "cus"
+[END PROPERTIES]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] cus
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1VH103FJA
+[CLASS] _edt
+[CLASSLOC] chbase.vcx
+[BASECLASS] editbox
+[OBJNAME] edt
+[START PROPERTIES]
+ForeColor = 0,0,255
+DisabledForeColor = 128,0,128
+p_talk_to_form_p_mode = 0
+p_mousewheel = .T.
+Name = "edt"
+[END PROPERTIES]
+[START METHODS]
+PROCEDURE DblClick
+this.p_mousewheel = !this.p_mousewheel
+
+
+ENDPROC
+PROCEDURE GotFocus
+this.BackColor = this.BackColor - 55
+ENDPROC
+PROCEDURE Init
+BINDEVENT(thisform,'p_mode',this,'m_mode_change',1)
+
+ENDPROC
+PROCEDURE LostFocus
+this.BackColor = this.BackColor + 55
+ENDPROC
+PROCEDURE MouseWheel
+Lparameters nDirection, nShift, nXCoord, nYCoord
+
+
+If this.p_mousewheel AND !EMPTY(nShift)
+	If  nDirection = 120
+
+		If This.FontSize < 16
+			This.FontSize = This.FontSize + 1
+		Endif
+
+
+	Endif
+
+	If  nDirection = -120
+
+		If This.FontSize > 8
+			This.FontSize = This.FontSize - 1
+		Endif
+
+
+	Endif
+Endif
+
+ENDPROC
+PROCEDURE RightClick
+IF this.ReadOnly
+
+
+
+this.p_mousewheel = !this.p_mousewheel
+
+
+ENDIF
+
+ENDPROC
+PROCEDURE m_mode_change
+Local lFlag
+*** will control enable for mode changes on the form.
+*** p_talk_to_form_p_mode must be set to .t. to activate
+
+If !Empty(This.p_talk_to_form_p_mode)
+	lFlag = .F.
+	Do Case
+		Case This.p_talk_to_form_p_mode = 1 And ;
+							(Thisform.p_mode = 'EDIT' Or Thisform.p_mode = 'NEW')
+			lFlag = .T.
+			
+		Case This.p_talk_to_form_p_mode = 2 And Thisform.p_mode = 'EDIT'
+			lFlag = .T.
+			
+		Case This.p_talk_to_form_p_mode = 3 And Thisform.p_mode = 'NEW'
+			lFlag = .T.
+
+	Endcase
+
+	This.Enabled = lFlag
+
+Endif
+
+ENDPROC
+[END METHODS]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED3]
+p_talk_to_form_p_mode 0 does not , 1 both edit and new, 2 edit only, 3 new only
+p_mousewheel
+*m_mode_change 
+*m_refresh 
+[END RESERVED3]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] edt
+[START PROPERTIES]
+Arial, 0, 9, 5, 15, 12, 32, 3, 0
+[END PROPERTIES]
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1VH103SCO
+[CLASS] _grd
+[CLASSLOC] chbase.vcx
+[BASECLASS] grid
+[OBJNAME] grd
+[START PROPERTIES]
+DeleteMark = .F.
+RecordMark = .F.
+ForeColor = 0,0,255
+HighlightBackColor = 200,255,255
+HighlightForeColor = 255,0,0
+SelectedItemBackColor = 200,255,255
+SelectedItemForeColor = 255,0,0
+HighlightStyle = 2
+Themes = .F.
+p_talk_to_form_p_mode = 0
+p_last_pk = 0
+p_filter = 
+Name = "grd"
+[END PROPERTIES]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED3]
+p_talk_to_form_p_mode 0 does not , 1 both edit and new, 2 edit only, 3 new only
+p_last_pk
+p_filter
+*m_refresh 
+[END RESERVED3]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] grd
+[START PROPERTIES]
+Arial, 0, 9, 5, 15, 12, 32, 3, 0
+[END PROPERTIES]
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1VH1041AQ
+[CLASS] _img
+[CLASSLOC] chbase.vcx
+[BASECLASS] image
+[OBJNAME] img
+[START PROPERTIES]
+Name = "img"
+[END PROPERTIES]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] img
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1VH104AEE
+[CLASS] _lbl
+[CLASSLOC] chbase.vcx
+[BASECLASS] label
+[OBJNAME] lbl
+[START PROPERTIES]
+AutoSize = .T.
+BackStyle = 0
+Caption = "LABEL1"
+ForeColor = 0,0,255
+Name = "lbl"
+[END PROPERTIES]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] lbl
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1VH104JUO
+[CLASS] _lin
+[CLASSLOC] chbase.vcx
+[BASECLASS] line
+[OBJNAME] lin
+[START PROPERTIES]
+Name = "lin"
+[END PROPERTIES]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] lin
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1VH104S66
+[CLASS] _lst
+[CLASSLOC] chbase.vcx
+[BASECLASS] listbox
+[OBJNAME] lst
+[START PROPERTIES]
+ItemForeColor = 0,0,255
+p_talk_to_form_p_mode = 0
+Name = "lst"
+[END PROPERTIES]
+[START METHODS]
+PROCEDURE m_mode_change
+Local lFlag
+*** will control enable for mode changes on the form.
+*** p_talk_to_form_p_mode must be set to .t. to activate
+
+If !Empty(This.p_talk_to_form_p_mode)
+	lFlag = .F.
+	Do Case
+		Case This.p_talk_to_form_p_mode = 1 And ;
+							(Thisform.p_mode = 'EDIT' Or Thisform.p_mode = 'NEW')
+			lFlag = .T.
+			
+		Case This.p_talk_to_form_p_mode = 2 And Thisform.p_mode = 'EDIT'
+			lFlag = .T.
+			
+		Case This.p_talk_to_form_p_mode = 3 And Thisform.p_mode = 'NEW'
+			lFlag = .T.
+
+	Endcase
+
+	This.Enabled = lFlag
+
+Endif
+
+ENDPROC
+[END METHODS]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED3]
+p_talk_to_form_p_mode 0 does not , 1 both edit and new, 2 edit only, 3 new only
+*m_mode_change 
+[END RESERVED3]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] lst
+[START PROPERTIES]
+Arial, 0, 9, 5, 15, 12, 32, 3, 0
+[END PROPERTIES]
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1VH1051JU
+[CLASS] _opg
+[CLASSLOC] chbase.vcx
+[BASECLASS] optiongroup
+[OBJNAME] opg
+[START PROPERTIES]
+p_talk_to_form_p_mode = 0
+p_reverse_talk_to_form_p_mode = .F.
+Name = "opg"
+Option1.Left = 5
+Option1.Top = 5
+Option1.ForeColor = 0,0,255
+Option1.Name = "Option1"
+Option2.Left = 5
+Option2.Top = 24
+Option2.ForeColor = 0,0,255
+Option2.Name = "Option2"
+[END PROPERTIES]
+[START METHODS]
+PROCEDURE Init
+BINDEVENT(thisform,'p_mode',this,'m_mode_change')
+
+ENDPROC
+PROCEDURE enabled_assign
+LPARAMETERS vNewVal
+*To do: Modify this routine for the Assign method
+THIS.Enabled = m.vNewVal
+
+
+FOR ix = 1 TO this.ButtonCount
+	this.Buttons(ix).enabled = this.enabled
+	this.Buttons(ix).disabledforecolor = RGB(0,0,1)
+endfor
+ENDPROC
+PROCEDURE m_mode_change
+Local lflag
+*** will control enable for mode changes on the form.
+*** p_talk_to_form_p_mode must be set to .t. to activate
+
+If !Empty(This.p_talk_to_form_p_mode)
+	lflag = .F.
+	Do Case
+		Case This.p_talk_to_form_p_mode = 1 And ;
+				(Thisform.p_mode = 'EDIT' Or Thisform.p_mode = 'NEW')
+			lflag = .T.
+		Case This.p_talk_to_form_p_mode = -1 And ;
+				(Thisform.p_mode = 'EDIT' Or Thisform.p_mode = 'NEW')
+			lflag = .F.
+
+		Case This.p_talk_to_form_p_mode = 2 And Thisform.p_mode = 'EDIT'
+			lflag = .T.
+		Case This.p_talk_to_form_p_mode = -2 And Thisform.p_mode = 'EDIT'
+			lflag = .F.
+		Case This.p_talk_to_form_p_mode = 3 And Thisform.p_mode = 'NEW'
+			lflag = .T.
+		Case This.p_talk_to_form_p_mode = -3 And Thisform.p_mode = 'NEW'
+			lflag = .F.
+
+	Endcase
+
+	If This.p_reverse_talk_to_form_p_mode
+		This.Enabled = !lflag
+	Else
+		This.Enabled = lflag
+	Endif
+
+Endif
+
+ENDPROC
+[END METHODS]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED3]
+p_talk_to_form_p_mode
+p_reverse_talk_to_form_p_mode
+*m_mode_change 
+*enabled_assign 
+*m_refresh 
+[END RESERVED3]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] opg
+[START PROPERTIES]
+Arial, 0, 9, 5, 15, 12, 32, 3, 0
+[END PROPERTIES]
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1VH105CUJ
+[CLASS] _opt
+[CLASSLOC] chbase.vcx
+[BASECLASS] optionbutton
+[OBJNAME] opt
+[START PROPERTIES]
+ForeColor = 0,0,255
+DisabledForeColor = 128,0,128
+p_talk_to_form_p_mode = 0
+Name = "opt"
+[END PROPERTIES]
+[START METHODS]
+PROCEDURE Init
+BINDEVENT(thisform,'p_mode',this,'m_mode_change',1)
+ENDPROC
+PROCEDURE m_mode_change
+Local lFlag
+*** will control enable for mode changes on the form.
+*** p_talk_to_form_p_mode must be set to .t. to activate
+
+If !Empty(This.p_talk_to_form_p_mode)
+	lFlag = .F.
+	Do Case
+		Case This.p_talk_to_form_p_mode = 1 And ;
+							(Thisform.p_mode = 'EDIT' Or Thisform.p_mode = 'NEW')
+			lFlag = .T.
+			
+		Case This.p_talk_to_form_p_mode = 2 And Thisform.p_mode = 'EDIT'
+			lFlag = .T.
+			
+		Case This.p_talk_to_form_p_mode = 3 And Thisform.p_mode = 'NEW'
+			lFlag = .T.
+
+	Endcase
+
+	This.Enabled = lFlag
+
+Endif
+
+ENDPROC
+[END METHODS]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED3]
+p_talk_to_form_p_mode 0 does not , 1 both edit and new, 2 edit only, 3 new only
+*m_mode_change 
+*m_refresh 
+[END RESERVED3]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] opt
+[START PROPERTIES]
+Arial, 0, 9, 5, 15, 12, 32, 3, 0
+[END PROPERTIES]
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1VH105NZ4
+[CLASS] _pag
+[CLASSLOC] chbase.vcx
+[BASECLASS] page
+[OBJNAME] pag
+[START PROPERTIES]
+ForeColor = 0,0,255
+Name = "pag"
+[END PROPERTIES]
+[START METHODS]
+PROCEDURE MouseDown
+LPARAMETERS nButton, nShift, nXCoord, nYCoord
+thisform.MouseDown(nButton, nShift, nXCoord, nYCoord)
+ENDPROC
+[END METHODS]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+2[END RESERVED2]
+[START RESERVED3]
+*m_refresh 
+[END RESERVED3]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _2KW0YTESW
+[CLASS] shp
+[CLASSLOC] ..\..\ch_scheduler\classes\ch_0.vcx
+[BASECLASS] shape
+[OBJNAME] Shp1
+[PARENT] pag
+[START PROPERTIES]
+Top = 12
+Left = 12
+Height = 17
+Width = 12
+Visible = .F.
+Name = "Shp1"
+[END PROPERTIES]
+[START METHODS]
+PROCEDURE UIEnable
+LPARAMETERS lEnable
+
+IF lEnable
+	this.Parent.Refresh
+ENDIF
+
+ENDPROC
+[END METHODS]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] pag
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1VH106AUX
+[CLASS] _shp
+[CLASSLOC] chbase.vcx
+[BASECLASS] shape
+[OBJNAME] shp
+[START PROPERTIES]
+Curvature = 20
+BackColor = 211,211,211
+BorderColor = 0,0,255
+p_reverse_talk_to_form_p_mode = .F.
+p_talk_to_form_p_mode = 0
+Name = "shp"
+[END PROPERTIES]
+[START METHODS]
+PROCEDURE Init
+BINDEVENT(thisform,'p_mode',this,'m_mode_change',1)
+ENDPROC
+PROCEDURE MouseDown
+LPARAMETERS nButton, nShift, nXCoord, nYCoord
+thisform.MouseDown(nButton, nShift, nXCoord, nYCoord)
+ENDPROC
+PROCEDURE m_mode_change
+
+*** will control enable for mode changes on the form.
+*** p_talk_to_form_p_mode must be set to .t. to activate
+
+If !Empty(This.p_talk_to_form_p_mode)
+	
+	Do Case
+		Case This.p_talk_to_form_p_mode = 1 And ;
+							(Thisform.p_mode = 'EDIT' Or Thisform.p_mode = 'NEW')
+			IF this.p_reverse_talk_to_form_p_mode
+			this.ZOrder(1)
+			else
+			this.ZOrder(0)
+			endif
+			
+		Case This.p_talk_to_form_p_mode = 2 And Thisform.p_mode = 'EDIT'
+			IF this.p_reverse_talk_to_form_p_mode
+			this.ZOrder(1)
+			else
+			this.ZOrder(0)
+			endif
+			
+		Case This.p_talk_to_form_p_mode = 3 And Thisform.p_mode = 'NEW'
+			IF this.p_reverse_talk_to_form_p_mode
+			this.ZOrder(1)
+			else
+			this.ZOrder(0)
+			endif
+
+		OTHERWISE
+			IF this.p_reverse_talk_to_form_p_mode
+			this.ZOrder(0)
+			else
+			this.ZOrder(1)
+			endif
+	ENDCASE
+	
+	
+
+Endif
+
+ENDPROC
+[END METHODS]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED3]
+p_reverse_talk_to_form_p_mode
+p_talk_to_form_p_mode
+*m_mode_change 
+*m_refresh 
+[END RESERVED3]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] shp
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1VH106MWI
+[CLASS] _spn
+[CLASSLOC] chbase.vcx
+[BASECLASS] spinner
+[OBJNAME] spn
+[START PROPERTIES]
+ForeColor = 0,0,255
+DisabledForeColor = 128,0,128
+p_talk_to_form_p_mode = 0
+Name = "spn"
+[END PROPERTIES]
+[START METHODS]
+PROCEDURE GotFocus
+this.BackColor = this.BackColor - 55
+ENDPROC
+PROCEDURE Init
+BINDEVENT(thisform,'p_mode',this,'m_mode_change',1)
+ENDPROC
+PROCEDURE LostFocus
+this.BackColor = this.BackColor + 55
+ENDPROC
+PROCEDURE m_mode_change
+Local lFlag
+*** will control enable for mode changes on the form.
+*** p_talk_to_form_p_mode must be set to .t. to activate
+
+If !Empty(This.p_talk_to_form_p_mode)
+	lFlag = .F.
+	Do Case
+		Case This.p_talk_to_form_p_mode = 1 And ;
+							(Thisform.p_mode = 'EDIT' Or Thisform.p_mode = 'NEW')
+			lFlag = .T.
+			
+		Case This.p_talk_to_form_p_mode = 2 And Thisform.p_mode = 'EDIT'
+			lFlag = .T.
+			
+		Case This.p_talk_to_form_p_mode = 3 And Thisform.p_mode = 'NEW'
+			lFlag = .T.
+
+	Endcase
+
+	This.Enabled = lFlag
+
+Endif
+
+ENDPROC
+[END METHODS]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED3]
+p_talk_to_form_p_mode 0 does not , 1 both edit and new, 2 edit only, 3 new only
+*m_mode_change 
+[END RESERVED3]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] spn
+[START PROPERTIES]
+Arial, 0, 9, 5, 15, 12, 32, 3, 0
+[END PROPERTIES]
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1VH106XI0
+[CLASS] _tmr
+[CLASSLOC] chbase.vcx
+[BASECLASS] timer
+[OBJNAME] tmr
+[START PROPERTIES]
+Name = "tmr"
+[END PROPERTIES]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] tmr
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1VH1076OB
+[CLASS] _txt
+[CLASSLOC] chbase.vcx
+[BASECLASS] textbox
+[OBJNAME] txt
+[START PROPERTIES]
+SelectOnEntry = .T.
+ForeColor = 0,0,255
+SelectedForeColor = 255,0,0
+DisabledForeColor = 128,0,128
+SelectedBackColor = 211,211,211
+p_talk_to_form_p_mode = 0
+Name = "txt"
+[END PROPERTIES]
+[START METHODS]
+PROCEDURE GotFocus
+* set back color
+*this.BackColor = RGB(200,255,255)
+this.BackColor = this.BackColor - 55
+ENDPROC
+PROCEDURE Init
+BINDEVENT(thisform,'p_mode',this,'m_mode_change',1)
+
+ENDPROC
+PROCEDURE LostFocus
+* reset backcolor
+*this.BackColor = RGB(255,255,255)
+
+IF this.BackColor <= 16777160
+this.BackColor = this.BackColor + 55
+endif
+
+ENDPROC
+PROCEDURE m_mode_change
+Local lFlag
+*** will control enable for mode changes on the form.
+*** p_talk_to_form_p_mode must be set to .t. to activate
+
+If !Empty(This.p_talk_to_form_p_mode)
+	lFlag = .F.
+	Do Case
+		Case This.p_talk_to_form_p_mode = 1 And ;
+							(Thisform.p_mode = 'EDIT' Or Thisform.p_mode = 'NEW')
+			lFlag = .T.
+			
+		Case This.p_talk_to_form_p_mode = 2 And Thisform.p_mode = 'EDIT'
+			lFlag = .T.
+			
+		Case This.p_talk_to_form_p_mode = 3 And Thisform.p_mode = 'NEW'
+			lFlag = .T.
+
+	Endcase
+
+	This.Enabled = lFlag
+
+Endif
+
+ENDPROC
+[END METHODS]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED3]
+p_talk_to_form_p_mode 0 does not , 1 both edit and new, 2 edit only, 3 new only
+*m_mode_change will be called when the forms p_mode is changed
+*m_special 
+[END RESERVED3]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] txt
+[START PROPERTIES]
+Arial, 0, 9, 5, 15, 12, 32, 3, 0
+[END PROPERTIES]
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1VN0Z2TUK
+[CLASS] frm
+[CLASSLOC] ch_0.vcx
+[BASECLASS] form
+[OBJNAME] frm_startup
+[START PROPERTIES]
+DoCreate = .T.
+Caption = "Startup Form"
+p_startup_form = .T.
+p_menu = STANDARD.MPR
+Name = "frm_startup"
+[END PROPERTIES]
+[START METHODS]
+PROCEDURE Init
+Lparameters oCallingObject
+
+IF TYPE('oCallingObject') = 'O'
+	DODEFAULT(oCallingObject)
+ELSE
+	DODEFAULT()
+
+ENDIF
+
+this.Name = 'frmStartUp'
+ENDPROC
+[END METHODS]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] frm_startup
+[START PROPERTIES]
+Arial, 0, 9, 5, 15, 12, 32, 3, 0
+[END PROPERTIES]
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _1X00N2R2R
+[CLASS] pageframe
+[BASECLASS] pageframe
+[OBJNAME] pgf
+[START PROPERTIES]
+ErasePage = .T.
+MemberClassLibrary = ch_0.vcx
+MemberClass = "pag"
+PageCount = 0
+ActivePage = 0
+Width = 241
+Height = 165
+Themes = .F.
+Name = "pgf"
+[END PROPERTIES]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] pgf
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _2DH0KY7C4
+[CLASS] grd
+[CLASSLOC] ch_0.vcx
+[BASECLASS] grid
+[OBJNAME] xgrd
+[START PROPERTIES]
+Height = 85
+ReadOnly = .T.
+RecordMark = .T.
+Width = 245
+p_auto_fit = .T.
+p_grid_filter = 
+p_grid_cursor = 
+p_start_blank = .F.
+p_misc_value = 
+p_filter_count = 0
+p_original_count = 0
+p_auto_fire_auto_fit = .T.
+p_reverse_index_order = .F.
+p_header_labels = 
+p_grid_filter_field = 
+p_grid_filter_caption = 
+p_double_click_field_filter = 
+Name = "xgrd"
+[END PROPERTIES]
+[START METHODS]
+PROCEDURE Init
+IF EMPTY(this.RecordSource)
+This.RecordSource = 'cur_'+Alltrim(Sys(3))
+ENDIF
+
+This.p_grid_cursor = This.RecordSource
+
+This.m_refresh
+
+
+lnColumns = This.ColumnCount
+
+Dimension This.p_sort_order(lnColumns)
+
+This.p_sort_order = 'ASC'
+
+For ix = 1 To lnColumns
+
+	lcIx = Alltrim(Str(ix))
+
+	Bindevent(This.Column&lcIx..header1,'click',This,'m_headerClick',1)
+	Bindevent(This.Column&lcIx..text1,'dblclick',This,'m_DoubleClick',1)
+	Bindevent(This.Column&lcIx..text1,'rightclick',This,'m_rightClick',1)
+Endfor
+
+
+*!*	If This.p_auto_fit
+
+*!*		This.AutoFit
+
+*!*		lnWidth = 0
+*!*		For ix = 1 To lnColumns
+*!*			lcIx = Alltrim(Str(ix))
+*!*			lnWidth = lnWidth + This.Column&lcIx..Width
+
+*!*		Endfor
+
+*!*		This.Width = lnWidth+32
+*!*	*** we could be on a pageframe
+*!*		If Type('This.Parent.Width') # 'U'
+
+*!*			If This.Parent.Width < This.Left + This.Width
+*!*				This.Width = This.Parent.Width  - This.Left
+
+*!*			Endif
+*!*		Else
+*!*			If This.Parent.Parent.Width < This.Left + This.Width
+*!*				This.Width = This.Parent.Parent.Width  - This.Left
+
+*!*			Endif
+
+*!*		Endif
+
+
+*!*	Endif
+
+ENDPROC
+PROCEDURE m_color
+Lparameters look_for_example
+
+*** option to code grid records various colors
+
+
+lcWhite 	 = 	Rgb(255,255,255)
+lcRed 		 = 	Rgb(255,0,0)
+lcPink	 	 =  RGB(255,200,200)
+lcCyan		 = 	Rgb(0,255,255)
+lcYellow 	 = 	Rgb(255,255,0)
+lcLightGrey  = 	Rgb(220,220,220)
+lcLightGreen = 	Rgb(200,255,200)
+
+*default color
+cColor = lcWhite
+
+
+
+
+
+
+*!*	**** you need to establish your choices here
+*!* ****  this is only a template to use
+
+*!*	lcCursor  = This.RecordSource
+
+*!*	Do Case
+*!*	Case &lcCursor..field1 = 1
+*!*		cColor = lcLightGreen
+*!*	Case &lcCursor..field1= 2
+*!*		cColor = lcWhite
+*!*	Case &lcCursor..field1= 3
+*!*		cColor = lcYellow
+*!*	Otherwise
+*!*		cColor = lcRed
+
+*!*	Endcase
+
+Return cColor
+
+ENDPROC
+PROCEDURE m_doubleclick
+LOCAL lcCursor
+
+*** get reference to column that header was clicked from
+
+Aevents( laWhichEvent, 0 )
+
+lnColumnNumber = laWhichEvent[1,1].Parent.ColumnOrder
+lcColumnNumberCharacter = Alltrim(Str(lnColumnNumber))
+
+
+*** clear backcolor for all headers
+
+FOR ix = 1 TO this.ColumnCount
+	lcIx = ALLTRIM(STR(ix))
+	this.column&lcIx..header1.backcolor = RGB(255,255,255)
+endfor
+this.column&lcColumnNumberCharacter..header1.backcolor = Rgb(220,220,220)
+
+*** set filter
+
+lcCursor = this.recordsource
+SELECT(lcCursor)
+
+
+this.p_grid_filter = this.column&lcColumnNumberCharacter..text1.value
+
+lcField_filter = this.column&lcColumnNumberCharacter..text1.ControlSource
+this.p_double_click_field_filter = lcField_filter  &&&& property to determine sub query's
+
+this.p_grid_filter_field = lcField_filter
+
+this.p_grid_filter_caption = this.column&lcColumnNumberCharacter..header1.caption
+
+SET FILTER TO &lcField_filter = this.p_grid_filter
+GO top
+this.Refresh
+
+
+*** now count the number records with this filter
+
+lcfieldValue = this.p_grid_filter
+DIMENSION lnFilterCount(1)
+lnFilterCount(1) = 0
+
+SELECT COUNT(lcField_filter) ;
+	FROM &lcCursor ;
+	WHERE &lcField_filter == lcFieldValue ;
+	INTO array lnFilterCount
+
+this.p_filter_count = lnFilterCount(1)
+
+
+
+ENDPROC
+PROCEDURE m_headerclick
+
+*** get reference to column that header was clicked from
+
+Aevents( laWhichEvent, 0 )
+
+
+IF !EMPTY(laWhichEvent[1,1].caption)
+
+
+lnColumnNumber = laWhichEvent[1,1].Parent.ColumnOrder
+lcColumnNumberCharacter = Alltrim(Str(lnColumnNumber))
+
+lcCol ='FLD'+ Alltrim(Str(lnColumnNumber))
+lcRecordSource = This.RecordSource
+
+Select (lcRecordSource)
+
+*** remove up or down bitmap from all columsn
+For ix = 1 To This.ColumnCount
+	lcIx = Alltrim(Str(ix))
+	This.Column&lcIx..header1.Picture =''
+Endfor
+
+
+** set order for column
+If This.p_sort_order(lnColumnNumber) = 'ASC'
+	Set Order To &lcCol Descending In &lcRecordSource
+	This.p_sort_order(lnColumnNumber) = 'DES'
+	This.Column&lcColumnNumberCharacter..header1.Picture = 'down.bmp'
+Else
+	Set Order To &lcCol Ascending In &lcRecordSource
+	This.p_sort_order(lnColumnNumber) = 'ASC'
+	This.Column&lcColumnNumberCharacter..header1.Picture = 'up.bmp'
+Endif
+
+Go Top
+
+This.Refresh
+endif
+ENDPROC
+PROCEDURE m_refresh
+
+*** make sure we have default position of grid
+With This
+	For lnCol = 1 To .ColumnCount
+		.Columns[ lnCol ].ColumnOrder = lnCol
+	Endfor
+Endwith
+
+
+lcRecordSource = This.RecordSource
+
+If Empty(lcRecordSource)
+	lcRecordSource = This.p_grid_cursor
+Endif
+
+This.RecordSource = ''
+
+*** get cursor for grid
+This.m_select_clause(lcRecordSource)
+
+
+** cycle through all fields in cursor and create index
+Select (lcRecordSource)
+If This.ColumnCount > 0
+	Afields(aFlds,lcRecordSource)
+	For ix = 1 To This.ColumnCount
+		lcIx = '"FLD'+Alltrim(Str(ix))+'"'
+		lcField = Alltrim(aFlds(ix,1))
+		If Upper(Alltrim(Alltrim(aFlds(ix,2)))) != 'M'
+			Index On &lcField Tag &lcIx Additive
+		Endif
+
+		If ix = 1
+			lcStartTag = lcIx
+		Endif
+
+	Endfor
+
+
+	If Empty(This.p_reverse_index_order)
+		Set Order To  &lcStartTag In &lcRecordSource
+		This.column1.header1.Picture = 'up.bmp'
+		Go Top
+		This.p_sort_order = 'ASC'
+	Else
+
+		Set Order To  &lcStartTag Descending In &lcRecordSource
+		This.column1.header1.Picture = 'Down.bmp'
+		Go Top
+		This.p_sort_order = 'DES'
+	Endif
+
+	This.SetAll("DynamicBackColor","this.m_color()", "Column" )
+Endif
+
+This.RecordSource = lcRecordSource
+
+If This.p_auto_fit
+
+	This.AutoFit
+
+	lnWidth = 0
+	For ix = 1 To This.ColumnCount
+		lcIx = Alltrim(Str(ix))
+		lnWidth = lnWidth + This.Column&lcIx..Width
+
+	Endfor
+
+	This.Width = lnWidth+32
+*** we could be on a pageframe
+	If Type('This.Parent.Width') # 'U'
+
+		If This.Parent.Width < This.Left + This.Width
+			This.Width = This.Parent.Width  - This.Left
+
+		Endif
+	Else
+		If This.Parent.Parent.Width < This.Left + This.Width
+			This.Width = This.Parent.Parent.Width  - This.Left
+
+		Endif
+
+	Endif
+
+
+Endif
+
+
+
+This.AutoFit(This.p_auto_Fire_auto_fit)
+
+
+
+
+
+This.Refresh
+
+ENDPROC
+PROCEDURE m_rightclick
+SET FILTER TO
+
+FOR ix = 1 TO this.ColumnCount
+	lcIx = ALLTRIM(STR(ix))
+	this.column&lcIx..header1.backcolor = RGB(255,255,255)
+endfor
+
+this.Refresh
+
+this.p_filter_count = this.p_original_count
+this.p_grid_filter = ''
+this.p_grid_filter_field = ''
+this.p_double_click_field_filter = ''
+ENDPROC
+PROCEDURE m_select_clause
+Lparameters lcRecordSource
+
+*** enter your select statement here for grid cursor and make it readwrite
+
+**EXAMPLE
+
+*!*	SELECT field1, ;
+*!*		field2, ;
+*!*		field3, ;
+*!*		field4,;
+*!*		field5 ;
+*!*	FROM table ;
+*!*	WHERE ??? ;
+*!*	INTO CURSOR &lcRecordSource readwrite
+
+** set "this.p_header_labels" to a string for all labels to use in the header
+
+
+*following give example of assigning Header captions in grid using * as separator
+*!*	this.p_header_labels = '*field1 caption*field2 caption*field3*'
+
+
+** make sure you do a dodefault now
+
+
+
+
+IF !EMPTY(this.p_header_labels)
+	lcHeader = this.p_header_labels
+	this.ColumnCount  = OCCURS('*',this.p_header_labels)-1
+ENDIF
+
+
+
+
+
+FOR ix = 1 TO this.ColumnCount
+	lcIx = ALLTRIM(STR(ix))
+	this.column&lcix..header1.Caption = ;
+		SUBSTR(lcHeader,AT_c('*',lcheader,ix)+1,AT_c('*',lcheader,ix+1)-AT_c('*',lcheader,ix)-1)
+
+ENDFOR
+
+this.Refresh
+this.ReadOnly = .t.
+ENDPROC
+PROCEDURE p_filter_count_assign
+LPARAMETERS vNewVal
+*To do: Modify this routine for the Assign method
+THIS.p_filter_count = m.vNewVal
+
+ENDPROC
+[END METHODS]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED3]
+p_auto_fit .T. will auto fit grid columns.   To manually control, set to .F. and auto change number of columns for grid and enter width for each column
+p_grid_filter property to retain filter when double clicking on grid
+p_grid_cursor
+p_start_blank
+p_misc_value
+p_filter_count
+p_original_count
+p_auto_fire_auto_fit in the m_refresh method, will pass this parameter to the autfit event
+p_reverse_index_order
+p_header_labels
+p_grid_filter_field
+p_grid_filter_caption
+p_double_click_field_filter
+*m_color Method called to color background of grid
+*m_select_clause Method called to select cursor for grid
+*m_headerclick Header Click method called
+^p_sort_order[1,0] Array to hold last sort order
+*m_doubleclick method called when grid is double clicked
+*m_rightclick 
+*p_filter_count_assign 
+[END RESERVED3]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] xgrd
+[START PROPERTIES]
+Arial, 0, 9, 5, 15, 12, 32, 3, 0
+[END PROPERTIES]
+
+[ RECORD]
+[PLATFORM] WINDOWS 
+[UNIQUEID] _2SH0JRH63
+[CLASS] _rtf
+[CLASSLOC] chbase.vcx
+[BASECLASS] olecontrol
+[OBJNAME] olertf
+[START PROPERTIES]
+Height = 100
+Width = 100
+Name = "olertf"
+[END PROPERTIES]
+[BINSTART OLE]
+CHECKSUM=20962
+[BINEND OLE]
+[BINSTART OLE2]
+CHECKSUM=33973
+[BINEND OLE2]
+[START RESERVED1]
+Class[END RESERVED1]
+[START RESERVED2]
+1[END RESERVED2]
+[START RESERVED6]
+Pixels[END RESERVED6]
+
+[ RECORD]
+[PLATFORM] COMMENT 
+[UNIQUEID] RESERVED  
+[OBJNAME] olertf
+[EOF]
